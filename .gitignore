@@ -1,0 +1,6 @@
+# Locally authored resumes and generated render output.
+/local-resumes/*
+!/local-resumes/.gitkeep
+
+# Python bytecode created when the local editor is run.
+__pycache__/

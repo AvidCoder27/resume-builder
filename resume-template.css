@@ -1,0 +1,82 @@
+@page {
+  size: Letter;
+  margin: 0.42in 0.55in;
+}
+
+body {
+  color: #111;
+  font-family: Cambria, "Liberation Serif", "Times New Roman", serif;
+  font-size: 9.4pt;
+  line-height: 1.23;
+}
+
+h1 {
+  margin: 0;
+  color: #111;
+  font-size: 22pt;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-align: center;
+}
+
+blockquote {
+  margin: 2px 0 7px;
+  color: #333;
+  font-size: 9pt;
+  text-align: center;
+}
+
+blockquote p {
+  margin: 0;
+}
+
+hr {
+  display: none;
+}
+
+h3 {
+  margin: 9px 0 4px;
+  padding: 0 0 2px;
+  border-bottom: 1px solid #222;
+  font-size: 10.5pt;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+p {
+  margin: 0 0 4px;
+}
+
+strong {
+  font-weight: 700;
+}
+
+em {
+  font-style: italic;
+}
+
+.date {
+  float: right;
+  font-style: normal;
+  white-space: nowrap;
+}
+
+ul {
+  margin: 1px 0 5px 17px;
+  padding: 0;
+}
+
+li {
+  margin: 0 0 1px;
+  padding-left: 1px;
+}
+
+h3 + p {
+  margin-bottom: 5px;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}

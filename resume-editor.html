@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Resume Editor</title>
+  <style>
+    :root {
+      color: #1e293b;
+      background: #e7e4dd;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body { margin: 0; min-width: 320px; }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 20px;
+      background: #153c35;
+      color: #f8f6ef;
+    }
+
+    h1 { margin: 0; font-family: Georgia, serif; font-size: 21px; font-weight: 600; }
+
+    .subtitle { margin: 2px 0 0; color: #c8d8cf; font-size: 12px; }
+    .view-controls { display: flex; gap: 6px; }
+    .view-controls button { border-color: #6d9186; background: transparent; font-size: 12px; font-weight: 600; }
+    .view-controls button:hover, .view-controls button[aria-pressed="true"] { background: #f8f6ef; color: #153c35; }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(320px, 0.9fr) minmax(440px, 1.1fr);
+      height: calc(100vh - 70px);
+      min-height: 560px;
+    }
+
+    .editor, .preview { min-width: 0; padding: 16px 18px; }
+    .editor { display: flex; flex-direction: column; background: #f8f6ef; border-right: 1px solid #c9c4ba; }
+    .preview { display: flex; flex-direction: column; background: #d8d4cc; }
+    main.editor-only, main.preview-only { grid-template-columns: 1fr; }
+    main.editor-only .preview, main.preview-only .editor { display: none; }
+
+    .controls { display: flex; align-items: end; gap: 10px; margin-bottom: 12px; }
+    .font-control { display: grid; gap: 3px; }
+    label, .panel-label { color: #52635e; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+    select, button { border-radius: 4px; font: inherit; }
+    select { min-width: 170px; padding: 7px 9px; border: 1px solid #9ba7a1; background: #fff; color: #17221f; }
+    button { padding: 8px 12px; border: 1px solid #0b2e27; background: #153c35; color: #fff; cursor: pointer; font-weight: 700; }
+    button:hover { background: #0b2e27; }
+    button:disabled { cursor: wait; opacity: 0.7; }
+
+    #status { min-height: 18px; margin: 0 0 9px; color: #52635e; font-size: 13px; }
+    #status.error { color: #a32929; }
+
+    textarea {
+      width: 100%;
+      min-height: 0;
+      flex: 1;
+      resize: none;
+      padding: 14px;
+      border: 1px solid #9ba7a1;
+      border-radius: 4px;
+      outline: none;
+      background: #fff;
+      color: #17221f;
+      font: 13px/1.45 "SFMono-Regular", Consolas, monospace;
+      tab-size: 2;
+    }
+
+    textarea:focus, select:focus { border-color: #153c35; box-shadow: 0 0 0 2px #bad4c8; }
+    .preview-title { margin: 0 0 9px; }
+    iframe { width: 100%; min-height: 0; flex: 1; border: 1px solid #aaa69e; background: #fff; box-shadow: 0 2px 10px #5a565040; }
+
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; height: auto; }
+      .editor, .preview { min-height: 620px; }
+      .editor { border-right: 0; border-bottom: 1px solid #c9c4ba; }
+      iframe { min-height: 700px; }
+    }
+
+    @media (max-width: 540px) {
+      header { align-items: flex-start; flex-direction: column; }
+      .view-controls { width: 100%; }
+      .view-controls button { flex: 1; padding: 8px 4px; }
+      .controls { align-items: stretch; flex-direction: column; }
+      select, button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Resume Editor</h1>
+      <p class="subtitle">Local Markdown source, standards-focused PDF output.</p>
+    </div>
+    <div class="view-controls" aria-label="Editor layout">
+      <button type="button" data-view="split" aria-pressed="true">Split</button>
+      <button type="button" data-view="editor-only" aria-pressed="false">Markdown</button>
+      <button type="button" data-view="preview-only" aria-pressed="false">PDF</button>
+    </div>
+  </header>
+  <main>
+    <section class="editor" aria-label="Markdown editor">
+      <div class="controls">
+        <div class="font-control">
+          <label for="font">Resume font</label>
+          <select id="font">
+            <option value="Cambria">Cambria</option>
+            <option value="Times New Roman">Times New Roman</option>
+            <option value="Georgia">Georgia</option>
+            <option value="Garamond">Garamond</option>
+            <option value="Calibri">Calibri</option>
+            <option value="Arial">Arial</option>
+          </select>
+        </div>
+        <button id="render" type="button">Regenerate PDF</button>
+      </div>
+      <p id="status" role="status">Loading resume source...</p>
+      <textarea id="markdown" aria-label="Resume Markdown" spellcheck="true"></textarea>
+    </section>
+    <section class="preview" aria-label="PDF preview">
+      <p class="panel-label preview-title">PDF preview</p>
+      <iframe id="pdf" title="Generated resume PDF"></iframe>
+    </section>
+  </main>
+  <script>
+    const markdown = document.querySelector('#markdown');
+    const font = document.querySelector('#font');
+    const render = document.querySelector('#render');
+    const status = document.querySelector('#status');
+    const pdf = document.querySelector('#pdf');
+    const workspace = document.querySelector('main');
+    const viewButtons = document.querySelectorAll('[data-view]');
+
+    function setStatus(message, isError = false) {
+      status.textContent = message;
+      status.classList.toggle('error', isError);
+    }
+
+    function refreshPdf() {
+      pdf.src = `local-resumes/resume.pdf?updated=${Date.now()}#view=FitH`;
+    }
+
+    viewButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        workspace.classList.remove('editor-only', 'preview-only');
+        if (button.dataset.view !== 'split') workspace.classList.add(button.dataset.view);
+        viewButtons.forEach(item => item.setAttribute('aria-pressed', item === button));
+      });
+    });
+
+    async function loadResume() {
+      const response = await fetch('/api/resume');
+      if (!response.ok) throw new Error('Could not load the resume source.');
+      const data = await response.json();
+      markdown.value = data.markdown;
+      font.value = data.font;
+      refreshPdf();
+      setStatus('Ready. Edit the Markdown, choose a font, then regenerate.');
+    }
+
+    render.addEventListener('click', async () => {
+      render.disabled = true;
+      setStatus('Rendering PDF...');
+      try {
+        const response = await fetch('/api/render', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ markdown: markdown.value, font: font.value })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'PDF rendering failed.');
+        refreshPdf();
+        setStatus('PDF regenerated successfully.');
+      } catch (error) {
+        setStatus(error.message, true);
+      } finally {
+        render.disabled = false;
+      }
+    });
+
+    loadResume().catch(error => setStatus(error.message, true));
+  </script>
+</body>
+</html>
