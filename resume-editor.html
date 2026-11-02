@@ -45,11 +45,13 @@
     main.editor-only, main.preview-only { grid-template-columns: 1fr; }
     main.editor-only .preview, main.preview-only .editor { display: none; }
 
-    .controls { display: flex; align-items: end; gap: 10px; margin-bottom: 12px; }
+    .controls { display: flex; align-items: end; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
     .font-control { display: grid; gap: 3px; }
     label, .panel-label { color: #52635e; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
     select, button { border-radius: 4px; font: inherit; }
     select { min-width: 170px; padding: 7px 9px; border: 1px solid #9ba7a1; background: #fff; color: #17221f; }
+    .backup-control select { min-width: 215px; }
+    input[type="file"] { display: none; }
     button { padding: 8px 12px; border: 1px solid #0b2e27; background: #153c35; color: #fff; cursor: pointer; font-weight: 700; }
     button:hover { background: #0b2e27; }
     button:disabled { cursor: wait; opacity: 0.7; }
@@ -118,6 +120,24 @@
             <option value="Arial">Arial</option>
           </select>
         </div>
+        <div class="font-control">
+          <label for="margin">Page margins</label>
+          <select id="margin">
+            <option value="0.5">0.5 inches</option>
+            <option value="0.75">0.75 inches</option>
+            <option value="1">1 inch</option>
+          </select>
+        </div>
+        <div class="font-control backup-control">
+          <label for="backup">Recent backups</label>
+          <select id="backup">
+            <option value="">No backups yet</option>
+          </select>
+        </div>
+        <button id="load-backup" type="button">Load backup</button>
+        <button id="load-file" type="button">Load .md</button>
+        <input id="file-input" type="file" accept="text/markdown,.md,.markdown">
+        <button id="export" type="button">Save Markdown</button>
         <button id="render" type="button">Regenerate PDF</button>
       </div>
       <p id="status" role="status">Loading resume source...</p>
@@ -131,6 +151,12 @@
   <script>
     const markdown = document.querySelector('#markdown');
     const font = document.querySelector('#font');
+    const margin = document.querySelector('#margin');
+    const backup = document.querySelector('#backup');
+    const loadBackup = document.querySelector('#load-backup');
+    const loadFile = document.querySelector('#load-file');
+    const fileInput = document.querySelector('#file-input');
+    const exportMarkdown = document.querySelector('#export');
     const render = document.querySelector('#render');
     const status = document.querySelector('#status');
     const pdf = document.querySelector('#pdf');
@@ -144,6 +170,32 @@
 
     function refreshPdf() {
       pdf.src = `local-resumes/resume.pdf?updated=${Date.now()}#view=FitH`;
+    }
+
+    function setBackups(backups) {
+      const selected = backup.value;
+      backup.replaceChildren(new Option(backups.length ? 'Select a backup' : 'No backups yet', ''));
+      backups.forEach(item => backup.add(new Option(item.label, item.name)));
+      backup.value = backups.some(item => item.name === selected) ? selected : '';
+    }
+
+    async function refreshBackups() {
+      const response = await fetch('/api/backups');
+      if (!response.ok) throw new Error('Could not load recent backups.');
+      const data = await response.json();
+      setBackups(data.backups);
+    }
+
+    async function saveCurrentMarkdown() {
+      const response = await fetch('/api/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ markdown: markdown.value })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not save the Markdown.');
+      setBackups(data.backups);
+      return data;
     }
 
     viewButtons.forEach(button => {
@@ -160,7 +212,9 @@
       const data = await response.json();
       markdown.value = data.markdown;
       font.value = data.font;
+      margin.value = data.margin;
       refreshPdf();
+      await refreshBackups();
       setStatus('Ready. Edit the Markdown, choose a font, then regenerate.');
     }
 
@@ -171,16 +225,66 @@
         const response = await fetch('/api/render', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ markdown: markdown.value, font: font.value })
+          body: JSON.stringify({ markdown: markdown.value, font: font.value, margin: margin.value })
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'PDF rendering failed.');
         refreshPdf();
+        setBackups(data.backups);
         setStatus('PDF regenerated successfully.');
       } catch (error) {
         setStatus(error.message, true);
       } finally {
         render.disabled = false;
+      }
+    });
+
+    loadBackup.addEventListener('click', async () => {
+      if (!backup.value) {
+        setStatus('Choose a backup to load.', true);
+        return;
+      }
+      try {
+        const response = await fetch('/api/load-backup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ backup: backup.value })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Could not load the backup.');
+        markdown.value = data.markdown;
+        setBackups(data.backups);
+        setStatus('Backup loaded into the editor and saved locally. Regenerate the PDF to apply it.');
+      } catch (error) {
+        setStatus(error.message, true);
+      }
+    });
+
+    loadFile.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', async () => {
+      const [file] = fileInput.files;
+      if (!file) return;
+      try {
+        markdown.value = await file.text();
+        await saveCurrentMarkdown();
+        setStatus('Markdown file loaded into the editor and saved locally. Regenerate the PDF to apply it.');
+      } catch (error) {
+        setStatus(error.message, true);
+      } finally {
+        fileInput.value = '';
+      }
+    });
+
+    exportMarkdown.addEventListener('click', async () => {
+      try {
+        const data = await saveCurrentMarkdown();
+        const blob = new Blob([data.markdown], { type: 'text/markdown;charset=utf-8' });
+        const link = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'resume.md' });
+        link.click();
+        URL.revokeObjectURL(link.href);
+        setStatus('Markdown saved locally and downloaded as resume.md.');
+      } catch (error) {
+        setStatus(error.message, true);
       }
     });
 
