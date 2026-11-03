@@ -28,6 +28,9 @@
     h1 { margin: 0; font-family: Georgia, serif; font-size: 21px; font-weight: 600; }
 
     .subtitle { margin: 2px 0 0; color: #c8d8cf; font-size: 12px; }
+    .header-actions { display: flex; align-items: center; gap: 12px; }
+    .header-separator { align-self: stretch; border-left: 1px solid #6d9186; }
+    .header-actions > #render:hover { background: #fff; color: #153c35; }
     .view-controls { display: flex; gap: 6px; }
     .view-controls button { border-color: #6d9186; background: transparent; font-size: 12px; font-weight: 600; }
     .view-controls button:hover, .view-controls button[aria-pressed="true"] { background: #f8f6ef; color: #153c35; }
@@ -46,6 +49,7 @@
     main.editor-only .preview, main.preview-only .editor { display: none; }
 
     .controls { display: flex; align-items: end; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+    .controls-separator { align-self: stretch; border-left: 1px solid #c9c4ba; }
     .font-control { display: grid; gap: 3px; }
     label, .panel-label { color: #52635e; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
     select, button { border-radius: 4px; font: inherit; }
@@ -55,6 +59,20 @@
     button { padding: 8px 12px; border: 1px solid #0b2e27; background: #153c35; color: #fff; cursor: pointer; font-weight: 700; }
     button:hover { background: #0b2e27; }
     button:disabled { cursor: wait; opacity: 0.7; }
+
+    .formatting-dialog {
+      width: min(360px, calc(100vw - 32px));
+      padding: 20px;
+      border: 1px solid #9ba7a1;
+      border-radius: 6px;
+      color: #1e293b;
+      background: #f8f6ef;
+      box-shadow: 0 12px 32px #17221f66;
+    }
+    .formatting-dialog::backdrop { background: #153c3570; }
+    .formatting-dialog h2 { margin: 0 0 18px; font: 600 21px Georgia, serif; }
+    .formatting-options { display: grid; gap: 14px; }
+    .dialog-actions { display: flex; justify-content: end; margin: 20px 0 0; padding: 0; }
 
     #status { min-height: 18px; margin: 0 0 9px; color: #52635e; font-size: 13px; }
     #status.error { color: #a32929; }
@@ -87,9 +105,12 @@
 
     @media (max-width: 540px) {
       header { align-items: flex-start; flex-direction: column; }
-      .view-controls { width: 100%; }
+      .header-actions { width: 100%; }
+      .header-actions > button { width: auto; }
+      .view-controls { flex: 1; }
       .view-controls button { flex: 1; padding: 8px 4px; }
       .controls { align-items: stretch; flex-direction: column; }
+      .controls-separator { width: 100%; border-top: 1px solid #c9c4ba; border-left: 0; }
       select, button { width: 100%; }
     }
   </style>
@@ -100,34 +121,19 @@
       <h1>Resume Editor</h1>
       <p class="subtitle">Local Markdown source, standards-focused PDF output.</p>
     </div>
-    <div class="view-controls" aria-label="Editor layout">
-      <button type="button" data-view="split" aria-pressed="true">Split</button>
-      <button type="button" data-view="editor-only" aria-pressed="false">Markdown</button>
-      <button type="button" data-view="preview-only" aria-pressed="false">PDF</button>
+    <div class="header-actions">
+      <button id="render" type="button">Regenerate PDF</button>
+      <div class="header-separator" aria-hidden="true"></div>
+      <div class="view-controls" aria-label="Editor layout">
+        <button type="button" data-view="split" aria-pressed="true">Split</button>
+        <button type="button" data-view="editor-only" aria-pressed="false">Markdown</button>
+        <button type="button" data-view="preview-only" aria-pressed="false">PDF</button>
+      </div>
     </div>
   </header>
   <main>
     <section class="editor" aria-label="Markdown editor">
       <div class="controls">
-        <div class="font-control">
-          <label for="font">Resume font</label>
-          <select id="font">
-            <option value="Cambria">Cambria</option>
-            <option value="Times New Roman">Times New Roman</option>
-            <option value="Georgia">Georgia</option>
-            <option value="Garamond">Garamond</option>
-            <option value="Calibri">Calibri</option>
-            <option value="Arial">Arial</option>
-          </select>
-        </div>
-        <div class="font-control">
-          <label for="margin">Page margins</label>
-          <select id="margin">
-            <option value="0.5">0.5 inches</option>
-            <option value="0.75">0.75 inches</option>
-            <option value="1">1 inch</option>
-          </select>
-        </div>
         <div class="font-control backup-control">
           <label for="backup">Recent backups</label>
           <select id="backup">
@@ -135,10 +141,12 @@
           </select>
         </div>
         <button id="load-backup" type="button">Load backup</button>
-        <button id="load-file" type="button">Load .md</button>
+        <div class="controls-separator" aria-hidden="true"></div>
+        <button id="load-file" type="button">Load Markdown</button>
         <input id="file-input" type="file" accept="text/markdown,.md,.markdown">
         <button id="export" type="button">Save Markdown</button>
-        <button id="render" type="button">Regenerate PDF</button>
+        <div class="controls-separator" aria-hidden="true"></div>
+        <button id="formatting" type="button" aria-haspopup="dialog">Formatting</button>
       </div>
       <p id="status" role="status">Loading resume source...</p>
       <textarea id="markdown" aria-label="Resume Markdown" spellcheck="true"></textarea>
@@ -148,6 +156,33 @@
       <iframe id="pdf" title="Generated resume PDF"></iframe>
     </section>
   </main>
+  <dialog id="formatting-dialog" class="formatting-dialog" aria-labelledby="formatting-title">
+    <h2 id="formatting-title">Resume formatting</h2>
+    <div class="formatting-options">
+      <div class="font-control">
+        <label for="font">Resume font</label>
+        <select id="font">
+          <option value="Cambria">Cambria</option>
+          <option value="Times New Roman">Times New Roman</option>
+          <option value="Georgia">Georgia</option>
+          <option value="Garamond">Garamond</option>
+          <option value="Calibri">Calibri</option>
+          <option value="Arial">Arial</option>
+        </select>
+      </div>
+      <div class="font-control">
+        <label for="margin">Page margins</label>
+        <select id="margin">
+          <option value="0.5">0.5 inches</option>
+          <option value="0.75">0.75 inches</option>
+          <option value="1">1 inch</option>
+        </select>
+      </div>
+    </div>
+    <form id="formatting-form" method="dialog" class="dialog-actions">
+      <button type="submit">Done</button>
+    </form>
+  </dialog>
   <script>
     const markdown = document.querySelector('#markdown');
     const font = document.querySelector('#font');
@@ -157,6 +192,9 @@
     const loadFile = document.querySelector('#load-file');
     const fileInput = document.querySelector('#file-input');
     const exportMarkdown = document.querySelector('#export');
+    const formatting = document.querySelector('#formatting');
+    const formattingDialog = document.querySelector('#formatting-dialog');
+    const formattingForm = document.querySelector('#formatting-form');
     const render = document.querySelector('#render');
     const status = document.querySelector('#status');
     const pdf = document.querySelector('#pdf');
@@ -206,6 +244,13 @@
       });
     });
 
+    formatting.addEventListener('click', () => formattingDialog.showModal());
+    formattingForm.addEventListener('submit', event => {
+      event.preventDefault();
+      formattingDialog.close();
+      renderPdf();
+    });
+
     async function loadResume() {
       const response = await fetch('/api/resume');
       if (!response.ok) throw new Error('Could not load the resume source.');
@@ -218,7 +263,7 @@
       setStatus('Ready. Edit the Markdown, choose a font, then regenerate.');
     }
 
-    render.addEventListener('click', async () => {
+    async function renderPdf() {
       render.disabled = true;
       setStatus('Rendering PDF...');
       try {
@@ -237,7 +282,9 @@
       } finally {
         render.disabled = false;
       }
-    });
+    }
+
+    render.addEventListener('click', renderPdf);
 
     loadBackup.addEventListener('click', async () => {
       if (!backup.value) {
@@ -245,6 +292,7 @@
         return;
       }
       try {
+        await saveCurrentMarkdown();
         const response = await fetch('/api/load-backup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -254,7 +302,7 @@
         if (!response.ok) throw new Error(data.error || 'Could not load the backup.');
         markdown.value = data.markdown;
         setBackups(data.backups);
-        setStatus('Backup loaded into the editor and saved locally. Regenerate the PDF to apply it.');
+        await renderPdf();
       } catch (error) {
         setStatus(error.message, true);
       }
@@ -277,13 +325,29 @@
 
     exportMarkdown.addEventListener('click', async () => {
       try {
+        const supportsSavePicker = typeof window.showSaveFilePicker === 'function';
+        const fileHandle = supportsSavePicker ? await window.showSaveFilePicker({
+          suggestedName: 'resume.md',
+          types: [{
+            description: 'Markdown files',
+            accept: { 'text/markdown': ['.md', '.markdown'] }
+          }]
+        }) : null;
         const data = await saveCurrentMarkdown();
-        const blob = new Blob([data.markdown], { type: 'text/markdown;charset=utf-8' });
-        const link = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'resume.md' });
-        link.click();
-        URL.revokeObjectURL(link.href);
-        setStatus('Markdown saved locally and downloaded as resume.md.');
+        if (fileHandle) {
+          const writable = await fileHandle.createWritable();
+          await writable.write(data.markdown);
+          await writable.close();
+          setStatus('Markdown saved locally and to the selected file.');
+        } else {
+          const blob = new Blob([data.markdown], { type: 'text/markdown;charset=utf-8' });
+          const link = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'resume.md' });
+          link.click();
+          URL.revokeObjectURL(link.href);
+          setStatus('Markdown saved locally and downloaded as resume.md.');
+        }
       } catch (error) {
+        if (error.name === 'AbortError') return;
         setStatus(error.message, true);
       }
     });

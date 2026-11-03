@@ -11,15 +11,15 @@ Briefly describe your background, strengths, and the work you are seeking.
 
 ### Education
 
-**University Name** <span class="date">City, State</span>  
-Degree, Field of Study <span class="date">Expected Month Year</span>
+**University Name** <span class="right">City, State</span><br>
+Degree, Field of Study <span class="right">Expected Month Year</span>
 
 ---
 
 ### Experience
 
-**Role Title** <span class="date">Month Year - Present</span>  
-*Organization Name* <span class="date">City, State</span>
+**Role Title** <span class="right">Month Year - Present</span><br>
+*Organization Name* <span class="right">City, State</span>
 
 * Describe a relevant accomplishment with a clear result.
 * Describe a responsibility, project, or technical contribution.
