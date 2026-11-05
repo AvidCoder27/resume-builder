@@ -28,9 +28,9 @@
     h1 { margin: 0; font-family: Georgia, serif; font-size: 21px; font-weight: 600; }
 
     .subtitle { margin: 2px 0 0; color: #c8d8cf; font-size: 12px; }
-    .header-actions { display: flex; align-items: center; gap: 12px; }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
     .header-separator { align-self: stretch; border-left: 1px solid #6d9186; }
-    .header-actions > #render:hover { background: #fff; color: #153c35; }
+    .header-actions > .action-button:hover { background: #fff; color: #153c35; }
     .view-controls { display: flex; gap: 6px; }
     .view-controls button { border-color: #6d9186; background: transparent; font-size: 12px; font-weight: 600; }
     .view-controls button:hover, .view-controls button[aria-pressed="true"] { background: #f8f6ef; color: #153c35; }
@@ -48,17 +48,23 @@
     main.editor-only, main.preview-only { grid-template-columns: 1fr; }
     main.editor-only .preview, main.preview-only .editor { display: none; }
 
-    .controls { display: flex; align-items: end; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
-    .controls-separator { align-self: stretch; border-left: 1px solid #c9c4ba; }
+    .controls { display: flex; align-items: end; gap: 8px; margin-bottom: 12px; }
     .font-control { display: grid; gap: 3px; }
     label, .panel-label { color: #52635e; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
     select, button { border-radius: 4px; font: inherit; }
     select { min-width: 170px; padding: 7px 9px; border: 1px solid #9ba7a1; background: #fff; color: #17221f; }
     .backup-control select { min-width: 215px; }
     input[type="file"] { display: none; }
-    button { padding: 8px 12px; border: 1px solid #0b2e27; background: #153c35; color: #fff; cursor: pointer; font-weight: 700; }
+    button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 8px 12px; border: 1px solid #0b2e27; background: #153c35; color: #fff; cursor: pointer; font-weight: 700; }
     button:hover { background: #0b2e27; }
     button:disabled { cursor: wait; opacity: 0.7; }
+    .button-icon { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
+    .icon-button { width: 35px; padding: 8px; }
+    .markdown-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 9px; }
+    .markdown-toolbar .panel-label { margin: 0; }
+    .markdown-actions { display: flex; gap: 6px; }
+    .markdown-actions button { border-color: #9ba7a1; background: #fff; color: #153c35; }
+    .markdown-actions button:hover { border-color: #153c35; background: #e6f0ea; }
 
     .formatting-dialog {
       width: min(360px, calc(100vw - 32px));
@@ -109,9 +115,12 @@
       .header-actions > button { width: auto; }
       .view-controls { flex: 1; }
       .view-controls button { flex: 1; padding: 8px 4px; }
-      .controls { align-items: stretch; flex-direction: column; }
-      .controls-separator { width: 100%; border-top: 1px solid #c9c4ba; border-left: 0; }
+      .controls { align-items: end; }
       select, button { width: 100%; }
+      .icon-button { width: 35px; }
+      .markdown-toolbar { align-items: flex-start; flex-direction: column; }
+      .markdown-actions { width: 100%; }
+      .markdown-actions button { flex: 1; }
     }
   </style>
 </head>
@@ -122,7 +131,14 @@
       <p class="subtitle">Local Markdown source, standards-focused PDF output.</p>
     </div>
     <div class="header-actions">
-      <button id="render" type="button">Regenerate PDF</button>
+      <button id="render" class="action-button" type="button">
+        <svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 1-2.34-5.66L20 8"></path><path d="M20 4v4h-4"></path></svg>
+        <span>Regenerate PDF</span>
+      </button>
+      <button id="formatting" class="action-button" type="button" aria-haspopup="dialog">
+        <svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10"></path><path d="M18 7h2"></path><path d="M4 17h4"></path><path d="M12 17h8"></path><circle cx="16" cy="7" r="2"></circle><circle cx="10" cy="17" r="2"></circle></svg>
+        <span>Formatting</span>
+      </button>
       <div class="header-separator" aria-hidden="true"></div>
       <div class="view-controls" aria-label="Editor layout">
         <button type="button" data-view="split" aria-pressed="true">Split</button>
@@ -140,15 +156,25 @@
             <option value="">No backups yet</option>
           </select>
         </div>
-        <button id="load-backup" type="button">Load backup</button>
-        <div class="controls-separator" aria-hidden="true"></div>
-        <button id="load-file" type="button">Load Markdown</button>
-        <input id="file-input" type="file" accept="text/markdown,.md,.markdown">
-        <button id="export" type="button">Save Markdown</button>
-        <div class="controls-separator" aria-hidden="true"></div>
-        <button id="formatting" type="button" aria-haspopup="dialog">Formatting</button>
+        <button id="load-backup" class="icon-button" type="button" aria-label="Load selected backup" title="Load selected backup">
+          <svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path><path d="M12 7v5l3 2"></path></svg>
+        </button>
       </div>
       <p id="status" role="status">Loading resume source...</p>
+      <div class="markdown-toolbar">
+        <p class="panel-label">Markdown source</p>
+        <div class="markdown-actions">
+          <button id="load-file" type="button">
+            <svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21V9"></path><path d="m7 14 5-5 5 5"></path><path d="M5 4h14"></path></svg>
+            <span>Load Markdown</span>
+          </button>
+          <input id="file-input" type="file" accept="text/markdown,.md,.markdown">
+          <button id="export" type="button">
+            <svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg>
+            <span>Save Markdown</span>
+          </button>
+        </div>
+      </div>
       <textarea id="markdown" aria-label="Resume Markdown" spellcheck="true"></textarea>
     </section>
     <section class="preview" aria-label="PDF preview">
