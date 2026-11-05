@@ -5,10 +5,20 @@ A local, Markdown-first resume editor that renders an ATS-friendly PDF.
 ## Run
 
 ```sh
-sh serve-resume-editor.sh
+# Nix (provides all dependencies)
+sh scripts/nix/serve-resume-editor.sh
+
+# Linux/macOS without Nix (needs python3, pandoc, wkhtmltopdf on PATH)
+sh scripts/posix/serve-resume-editor.sh
 ```
 
-Open `http://127.0.0.1:8765` in a browser. The launcher uses Nix to provide Python, Pandoc, and wkhtmltopdf.
+On Windows, run `scripts\windows\install.bat` once (installs Python, Pandoc, and wkhtmltopdf via winget), then double-click or run:
+
+```bat
+scripts\windows\serve-resume-editor.bat
+```
+
+Open `http://127.0.0.1:8765` in a browser. The Nix scripts provide Python, Pandoc, and wkhtmltopdf automatically; the POSIX and Windows scripts need them installed (Windows can install them for you).
 
 ## Features
 
@@ -19,4 +29,16 @@ Open `http://127.0.0.1:8765` in a browser. The launcher uses Nix to provide Pyth
 
 ## Local Data
 
-Personal resume source, render output, styling selections, and backups live in `local-resumes/`. That directory is ignored by Git; the repository tracks only reusable code, templates, and writing guidance in `resume-tips.md`.
+Personal resume source, render output, styling selections, and backups live in `local-resumes/`. That directory is ignored by Git; the repository tracks only reusable code, templates, and writing guidance in `docs/resume-tips.md`.
+
+## Project Layout
+
+```
+src/                 Editor server (resume_editor_server.py) and UI (resume-editor.html)
+templates/           Starter resume Markdown and CSS
+docs/                Resume writing guidance (resume-tips.md)
+scripts/nix/         serve-resume-editor.sh, render-resume.sh (via nix-shell)
+scripts/posix/       Same scripts using system-installed tools, plus deps.sh
+scripts/windows/     install.bat, deps.bat, serve-resume-editor.bat, render-resume.bat
+local-resumes/       Your resumes, renders, and backups (git-ignored)
+```

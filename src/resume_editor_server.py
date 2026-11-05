@@ -11,15 +11,15 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent
 RESUME_DIR = ROOT / "local-resumes"
 MARKDOWN_FILE = RESUME_DIR / "resume.md"
 STYLESHEET_FILE = RESUME_DIR / "resume.css"
 HTML_FILE = RESUME_DIR / "resume.html"
 PDF_FILE = RESUME_DIR / "resume.pdf"
 BACKUP_DIR = RESUME_DIR / "backups"
-MARKDOWN_TEMPLATE = ROOT / "resume-template.md"
-STYLESHEET_TEMPLATE = ROOT / "resume-template.css"
+MARKDOWN_TEMPLATE = ROOT / "templates" / "resume-template.md"
+STYLESHEET_TEMPLATE = ROOT / "templates" / "resume-template.css"
 PORT = 8765
 
 FONT_STACKS = {
@@ -169,7 +169,7 @@ class ResumeEditorHandler(SimpleHTTPRequestHandler):
             write_json(self, HTTPStatus.OK, {"backups": recent_backups()})
             return
         if self.path.split("?", 1)[0] == "/":
-            self.path = "/resume-editor.html"
+            self.path = "/src/resume-editor.html"
         super().do_GET()
 
     def do_POST(self):
